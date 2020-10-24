@@ -563,7 +563,7 @@ export class QueryManager<TStore> {
     const observableQueryPromises: Promise<ApolloQueryResult<any>>[] = [];
 
     this.queries.forEach(({ observableQuery }, queryId) => {
-      if (observableQuery) {
+      if (observableQuery && observableQuery.hasObservers()) {
         const fetchPolicy = observableQuery.options.fetchPolicy;
 
         observableQuery.resetLastResults();
@@ -972,7 +972,8 @@ export class QueryManager<TStore> {
 
       if (process.env.NODE_ENV !== 'production' &&
           isNonEmptyArray(diff.missing) &&
-          !equal(data, {})) {
+          !equal(data, {}) &&
+          !returnPartialData) {
         invariant.warn(`Missing cache result fields: ${
           diff.missing.map(m => m.path.join('.')).join(', ')
         }`, diff.missing);

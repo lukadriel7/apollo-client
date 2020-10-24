@@ -3506,9 +3506,18 @@ describe('QueryManager', () => {
           }
         }
       `;
-
-      const queryManager = mockQueryManager(reject);
+      const data = {
+        author: {
+          firstName: 'John',
+          lastName: 'Smith',
+        },
+      };
+      const queryManager = mockQueryManager(reject, {
+        request: { query },
+        result: { data }
+      });
       const obs = queryManager.watchQuery<any>({ query });
+      obs.subscribe({});
       obs.refetch = resolve as any;
 
       queryManager.resetStore();
@@ -3536,6 +3545,7 @@ describe('QueryManager', () => {
       let refetchCount = 0;
 
       const obs = queryManager.watchQuery(options);
+      obs.subscribe({});
       obs.refetch = () => {
         ++refetchCount;
         return null as never;
@@ -3566,6 +3576,41 @@ describe('QueryManager', () => {
       const options = {
         query,
         fetchPolicy: "standby",
+      } as WatchQueryOptions;
+
+      let refetchCount = 0;
+
+      const obs = queryManager.watchQuery(options);
+      obs.subscribe({});
+      obs.refetch = () => {
+        ++refetchCount;
+        return null as never;
+      };
+
+      queryManager.resetStore();
+
+      setTimeout(() => {
+        expect(refetchCount).toEqual(0);
+        resolve();
+      }, 50);
+    });
+
+    itAsync('should not call refetch on a non-subscribed Observable if the store is reset', (resolve, reject) => {
+      const query = gql`
+        query {
+          author {
+            firstName
+            lastName
+          }
+        }
+      `;
+
+      const queryManager = createQueryManager({
+        link: mockSingleLink().setOnError(reject),
+      });
+
+      const options = {
+        query,
       } as WatchQueryOptions;
 
       let refetchCount = 0;
@@ -3906,10 +3951,19 @@ describe('QueryManager', () => {
           }
         }
       `;
-
-      const queryManager = mockQueryManager(reject);
+      const data = {
+        author: {
+          firstName: 'John',
+          lastName: 'Smith',
+        },
+      };
+      const queryManager = mockQueryManager(reject, {
+        request: { query },
+        result: { data },
+      });
 
       const obs = queryManager.watchQuery({ query });
+      obs.subscribe({});
       obs.refetch = resolve as any;
 
       queryManager.reFetchObservableQueries();
@@ -3937,6 +3991,7 @@ describe('QueryManager', () => {
       let refetchCount = 0;
 
       const obs = queryManager.watchQuery(options);
+      obs.subscribe({});
       obs.refetch = () => {
         ++refetchCount;
         return null as never;
@@ -3972,6 +4027,7 @@ describe('QueryManager', () => {
       let refetchCount = 0;
 
       const obs = queryManager.watchQuery(options);
+      obs.subscribe({});
       obs.refetch = () => {
         ++refetchCount;
         return null as never;
@@ -4007,6 +4063,7 @@ describe('QueryManager', () => {
       let refetchCount = 0;
 
       const obs = queryManager.watchQuery(options);
+      obs.subscribe({});
       obs.refetch = () => {
         ++refetchCount;
         return null as never;
@@ -4017,6 +4074,40 @@ describe('QueryManager', () => {
 
       setTimeout(() => {
         expect(refetchCount).toEqual(1);
+        resolve();
+      }, 50);
+    });
+
+    itAsync('should not call refetch on a non-subscribed Observable', (resolve, reject) => {
+      const query = gql`
+        query {
+          author {
+            firstName
+            lastName
+          }
+        }
+      `;
+
+      const queryManager = createQueryManager({
+        link: mockSingleLink().setOnError(reject),
+      });
+
+      const options = {
+        query
+      } as WatchQueryOptions;
+
+      let refetchCount = 0;
+
+      const obs = queryManager.watchQuery(options);
+      obs.refetch = () => {
+        ++refetchCount;
+        return null as never;
+      };
+
+      queryManager.reFetchObservableQueries();
+
+      setTimeout(() => {
+        expect(refetchCount).toEqual(0);
         resolve();
       }, 50);
     });
@@ -5228,5 +5319,107 @@ describe('QueryManager', () => {
 
       expect(queryManager['inFlightLinkObservables'].size).toBe(0)
     });
-  })
+  });
+
+  describe('missing cache field warnings', () => {
+    const originalWarn = console.warn;
+    let warnCount = 0;
+
+    beforeEach(() => {
+      warnCount = 0;
+      console.warn = (...args: any[]) => {
+        warnCount += 1;
+      };
+    });
+
+    afterEach(() => {
+      console.warn = originalWarn;
+    });
+
+    function validateWarnings(
+      resolve: (result?: any) => void,
+      reject: (reason?: any) => void,
+      returnPartialData = false,
+      expectedWarnCount = 1
+    ) {
+      const query1 = gql`
+        query {
+          car {
+            make
+            model
+            id
+            __typename
+          }
+        }
+      `;
+
+      const query2 = gql`
+        query {
+          car {
+            make
+            model
+            vin
+            id
+            __typename
+          }
+        }
+      `;
+
+      const data1 = {
+        car: {
+          make: 'Ford',
+          model: 'Pinto',
+          id: 123,
+          __typename: 'Car'
+        },
+      };
+
+      const queryManager = mockQueryManager(
+        reject,
+        {
+          request: { query: query1 },
+          result: { data: data1 },
+        },
+      );
+
+      const observable1 = queryManager.watchQuery<any>({ query: query1 });
+      const observable2 = queryManager.watchQuery<any>({
+        query: query2,
+        fetchPolicy: 'cache-only',
+        returnPartialData,
+      });
+
+      return observableToPromise(
+        { observable: observable1 },
+        result => {
+          expect(result).toEqual({
+            loading: false,
+            data: data1,
+            networkStatus: NetworkStatus.ready,
+          });
+        },
+      ).then(() => {
+        observableToPromise(
+          { observable: observable2 },
+          result => {
+            expect(result).toEqual({
+              data: data1,
+              loading: false,
+              networkStatus: NetworkStatus.ready,
+              partial: true,
+            });
+            expect(warnCount).toBe(expectedWarnCount);
+          },
+        ).then(resolve, reject)
+      });
+    }
+
+    itAsync('should show missing cache result fields warning when returnPartialData is false', (resolve, reject) => {
+      validateWarnings(resolve, reject, false, 1);
+    });
+
+    itAsync('should not show missing cache result fields warning when returnPartialData is true', (resolve, reject) => {
+      validateWarnings(resolve, reject, true, 0);
+    });
+  });
 });

@@ -1,9 +1,54 @@
+## Apollo Client 3.2.5
+
+## Improvements
+
+- Move `terser` dependency from `dependencies` to `devDependencies`. <br/>
+  [@SimenB](https://github.com/SimenB) in [#7188](https://github.com/apollographql/apollo-client/pull/7188)
+
+- Avoid all sub-package imports from the `graphql` npm package. <br/>
+  [@stoically](https://github.com/stoically) in [#7185](https://github.com/apollographql/apollo-client/pull/7185)
+
+## Apollo Client 3.2.4
+
+## Improvements
+
+- Update the `optimism` npm dependency to version 0.13.0 in order to use the new `optimistic.forget` method to fix a potential `cache.watch` memory leak. <br/>
+  [@benjamn](https://github.com/benjamn) in [#7157](https://github.com/apollographql/apollo-client/pull/7157)
+
+- Consider `cache.reset` a destructive method, like `cache.evict` and `cache.modify`. <br/>
+  [@joshjg](https://github.com/joshjg) in [#7150](https://github.com/apollographql/apollo-client/pull/7150)
+
+- Avoid refetching observerless queries with `reFetchObservableQueries`. <br/>
+  [@joshjg](https://github.com/joshjg) in [#7146](https://github.com/apollographql/apollo-client/pull/7146)
+
+## Apollo Client 3.2.3
+
+## Improvements
+
+- Default `args.offset` to zero in `offsetLimitPagination`. <br/>
+  [@benjamn](https://github.com/benjamn) in [#7141](https://github.com/apollographql/apollo-client/pull/7141)
+
+## Apollo Client 3.2.2
+
+## Bug Fixes
+
+- Undo `TEdgeWrapper` approach for `relayStylePagination`, introduced by [f41e9efc](https://github.com/apollographql/apollo-client/commit/f41e9efc9e061b80fe5019456c049a3c56661e87) in [#7023](https://github.com/apollographql/apollo-client/pull/7023), since it was an unintended breaking change for existing code that used `cache.modify` to interact with field data managed by `relayStylePagination`. <br/>
+  [@benjamn](https://github.com/benjamn) in [#7103](https://github.com/apollographql/apollo-client/pull/7103)
+
 ## Apollo Client 3.2.1
 
 ## Bug Fixes
 
 - Fix `relayStylePagination` to handle the possibility that edges might be normalized `Reference` objects (uncommon). <br/>
   [@anark](https://github.com/anark) and [@benjamn](https://github.com/benjamn) in [#7023](https://github.com/apollographql/apollo-client/pull/7023)
+
+- Disable "Missing cache result fields" warnings when `returnPartialData` is `true`.  <br/>
+  [@hwillson](https://github.com/hwillson) in [#7055](https://github.com/apollographql/apollo-client/pull/7055)
+
+## Improvements
+
+- Mark `subscriptions-transport-ws` `peerDependency` as optional. <br/>
+  [@MasterOdin](https://github.com/MasterOdin) in [#7047](https://github.com/apollographql/apollo-client/pull/7047)
 
 ## Apollo Client 3.2.0
 
